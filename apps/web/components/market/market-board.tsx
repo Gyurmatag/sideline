@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { PriceChart, type PricePoint } from "./price-chart";
 import { AgentFeed } from "./agent-feed";
+import { Leaderboard } from "./leaderboard";
 
 const TRADE_SIZES = [10, 25, 50] as const;
 
@@ -238,6 +239,8 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
                   )}
                 </CardContent>
               </Card>
+
+              <Leaderboard eventSlug={eventSlug} />
 
               <p className="px-1 text-center text-xs text-muted-foreground">
                 Open this page in another tab and trade — the price moves for

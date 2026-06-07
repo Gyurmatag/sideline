@@ -15,4 +15,10 @@ test("the demo market shows the live AI desk with forecaster reasoning", async (
   await expect(page.getByTestId("agent-feed-item").first()).toBeVisible({
     timeout: 30_000,
   });
+
+  // The live leaderboard ranks traders (agents + humans) by net worth.
+  await expect(page.getByRole("heading", { name: /Leaderboard/i })).toBeVisible();
+  await expect(page.getByTestId("leaderboard-row").first()).toBeVisible({
+    timeout: 30_000,
+  });
 });
