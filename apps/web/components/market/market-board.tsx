@@ -31,6 +31,7 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
   const [users] = useTable(tables.users);
   const [resolutions] = useTable(tables.resolutions);
   const [events] = useTable(tables.events.where((r) => r.slug.eq(eventSlug)));
+  const [positions] = useTable(tables.positions);
   const placeTrade = useReducer(reducers.placeTrade);
   const resolveMarket = useReducer(reducers.resolveMarket);
 
@@ -103,6 +104,24 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
         : undefined,
     [resolutions, market],
   );
+
+  const myPositions = useMemo(() => {
+    if (!market || !identity) return [];
+    return positions
+      .filter(
+        (p) =>
+          p.marketId === market.id && p.owner.isEqual(identity) && p.shares !== 0,
+      )
+      .map((p) => {
+        const oi = marketOutcomes.findIndex((o) => o.id === p.outcomeId);
+        return {
+          id: p.id.toString(),
+          label: marketOutcomes[oi]?.label ?? "?",
+          shares: p.shares,
+          value: p.shares * (prices[oi] ?? 0),
+        };
+      });
+  }, [positions, market, identity, marketOutcomes, prices]);
 
   async function handleBuy(outcomeId: bigint) {
     if (!market) return;
@@ -275,6 +294,37 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
                   </p>
                 </CardContent>
               </Card>
+
+              {myPositions.length > 0 && (
+                <Card>
+                  <CardContent className="p-6">
+                    <h2 className="mb-3 font-semibold">Your positions</h2>
+                    <ul className="space-y-2 text-sm">
+                      {myPositions.map((p) => (
+                        <li
+                          key={p.id}
+                          className="flex items-center justify-between"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Badge
+                              variant={p.label === "YES" ? "success" : "muted"}
+                              className="w-12 justify-center"
+                            >
+                              {p.label}
+                            </Badge>
+                            <span className="text-muted-foreground">
+                              {Math.round(p.shares)} shares
+                            </span>
+                          </span>
+                          <span className="tabular-nums">
+                            {formatPlayMoney(p.value, currency)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
 
               <Card>
                 <CardContent className="p-6">
