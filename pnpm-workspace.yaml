@@ -1,4 +1,6 @@
 packages:
   - "apps/*"
+  - "packages/llm"
+  - "packages/evals"
   - "packages/module/spacetimedb"
   - "workers/*"

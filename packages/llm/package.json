@@ -1,0 +1,28 @@
+{
+  "name": "@sideline/llm",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Multi-provider LLM layer (Vercel AI SDK) with tiered routing, cost guardrails, and structured forecasting for Sideline agents + evals.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "3.0.81",
+    "@ai-sdk/google": "3.0.80",
+    "@ai-sdk/openai": "3.0.68",
+    "ai": "6.0.197",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "5.9.3",
+    "vitest": "4.1.8"
+  }
+}
