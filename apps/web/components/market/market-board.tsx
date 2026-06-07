@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { PriceChart, type PricePoint } from "./price-chart";
 import { AgentFeed } from "./agent-feed";
 import { Leaderboard } from "./leaderboard";
+import { ShareInvite } from "./share-invite";
 
 const TRADE_SIZES = [10, 25, 50] as const;
 
@@ -64,6 +65,7 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
 
   const event = events[0];
   const currency = event?.currencyName ?? "Sideline Bucks";
+  const isOrganizer = !!identity && !!event && event.createdBy.isEqual(identity);
 
   const marketOutcomes = useMemo(() => {
     if (!market) return [];
@@ -352,6 +354,10 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
 
             {/* Side panel */}
             <div className="space-y-6">
+              {isOrganizer && (
+                <ShareInvite eventSlug={eventSlug} accent={event?.accent} />
+              )}
+
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
