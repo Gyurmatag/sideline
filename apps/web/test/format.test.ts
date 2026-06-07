@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { slugify, formatPlayMoney } from "../lib/utils";
+import { slugify, formatPlayMoney, formatProbability, formatPercent1 } from "../lib/format";
 
 describe("slugify", () => {
   it("lowercases and hyphenates", () => {
@@ -22,5 +22,15 @@ describe("formatPlayMoney", () => {
 
   it("uses a custom currency name", () => {
     expect(formatPlayMoney(2500, "FomoCoins")).toBe("2,500 FomoCoins");
+  });
+});
+
+describe("probability formatting", () => {
+  it("rounds to whole percent", () => {
+    expect(formatProbability(0.6224)).toBe("62%");
+  });
+
+  it("keeps one decimal", () => {
+    expect(formatPercent1(0.6224593)).toBe("62.2%");
   });
 });

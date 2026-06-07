@@ -28,6 +28,7 @@ Winning-criteria hypotheses (refine as real judging info surfaces):
 - `idea-010` · 2026-06-06 · White-label custom domains per organizer · value:H effort:M · win-impact:business · status:idea · decision:backlog
 - `idea-011` · 2026-06-06 · PWA + "market closing soon" push notifications · value:H effort:M · win-impact:wow · status:idea · decision:backlog
 - `idea-012` · 2026-06-06 · i18n / multi-language attendee UI · value:L effort:M · win-impact:business · status:idea · decision:backlog
+- `idea-013` · 2026-06-06 · Multi-tier, multi-provider LLM eval system (OpenAI + Gemini + Anthropic via Vercel AI SDK): forecaster agents run across model tiers/providers; an eval harness scores predictions (Brier/calibration vs resolved outcomes + LLM-as-judge) and surfaces a model scoreboard in the reasoning feed + dashboard · source: user request · value:H effort:M · win-impact:tech-depth,wow,demo · status:building · decision:build-now (integrated into the agent slices 5/6)
 
 ## Parked (need explicit approval — real money / regulated / billing)
 
