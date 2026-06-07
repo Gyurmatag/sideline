@@ -34,6 +34,8 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
+import CreateEventReducer from "./create_event_reducer";
+import CreateMarketReducer from "./create_market_reducer";
 import PlaceTradeReducer from "./place_trade_reducer";
 import PostAgentFeedReducer from "./post_agent_feed_reducer";
 import RegisterAgentReducer from "./register_agent_reducer";
@@ -47,6 +49,7 @@ import StartTicksReducer from "./start_ticks_reducer";
 // Import all table schema definitions
 import AgentFeedRow from "./agent_feed_table";
 import AgentsRow from "./agents_table";
+import EventsRow from "./events_table";
 import MarketPriceHistoryRow from "./market_price_history_table";
 import MarketsRow from "./markets_table";
 import OutcomesRow from "./outcomes_table";
@@ -90,6 +93,21 @@ const tablesSchema = __schema({
       { name: 'agents_identity_key', constraint: 'unique', columns: ['identity'] },
     ],
   }, AgentsRow),
+  events: __table({
+    name: 'events',
+    indexes: [
+      { accessor: 'id', name: 'events_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'slug', name: 'events_slug_idx_btree', algorithm: 'btree', columns: [
+        'slug',
+      ] },
+    ],
+    constraints: [
+      { name: 'events_id_key', constraint: 'unique', columns: ['id'] },
+      { name: 'events_slug_key', constraint: 'unique', columns: ['slug'] },
+    ],
+  }, EventsRow),
   market_price_history: __table({
     name: 'market_price_history',
     indexes: [
@@ -194,6 +212,8 @@ const tablesSchema = __schema({
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
+  __reducerSchema("create_event", CreateEventReducer),
+  __reducerSchema("create_market", CreateMarketReducer),
   __reducerSchema("place_trade", PlaceTradeReducer),
   __reducerSchema("post_agent_feed", PostAgentFeedReducer),
   __reducerSchema("register_agent", RegisterAgentReducer),

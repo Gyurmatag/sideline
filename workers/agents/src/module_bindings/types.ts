@@ -33,6 +33,17 @@ export const Agents = __t.object("Agents", {
 });
 export type Agents = __Infer<typeof Agents>;
 
+export const Events = __t.object("Events", {
+  id: __t.u64(),
+  slug: __t.string(),
+  name: __t.string(),
+  currencyName: __t.string(),
+  accent: __t.string(),
+  createdBy: __t.identity(),
+  createdAt: __t.timestamp(),
+});
+export type Events = __Infer<typeof Events>;
+
 export const MarketPriceHistory = __t.object("MarketPriceHistory", {
   id: __t.u64(),
   marketId: __t.u64(),

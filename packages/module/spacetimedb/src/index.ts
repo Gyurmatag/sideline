@@ -2,6 +2,7 @@ import { schema, table, t, SenderError } from "spacetimedb/server";
 import { ScheduleAt } from "spacetimedb";
 import { costToBuy, lmsrPrices } from "./lmsr";
 import { resolvedPrices } from "./settlement";
+import { isValidSlug } from "./validation";
 
 // How often the housekeeping tick runs (keeps markets alive with no client).
 const TICK_INTERVAL_MICROS = 20_000_000n; // 20s
@@ -23,6 +24,20 @@ const DEMO_LIQUIDITY = 50;
 
 const spacetimedb = schema({
   market_ticks: marketTicks,
+  // Tenants/events. markets.event_id references events.slug. Anonymous organizers
+  // for the MVP self-serve flow (production gates this to authed org admins).
+  events: table(
+    { public: true },
+    {
+      id: t.u64().primaryKey().autoInc(),
+      slug: t.string().unique(),
+      name: t.string(),
+      currency_name: t.string(),
+      accent: t.string(), // branding accent color (hex)
+      created_by: t.identity(),
+      created_at: t.timestamp(),
+    },
+  ),
   users: table(
     { public: true },
     {
@@ -142,14 +157,14 @@ function ensureUser(ctx: Ctx) {
   });
 }
 
-function seedDemoIfEmpty(ctx: Ctx) {
-  if (ctx.db.markets.count() > 0n) return;
+/** Open a fresh binary (YES/NO) market in an event and seed its initial 50/50 price. */
+function openBinaryMarket(ctx: Ctx, eventId: string, question: string, b: number) {
   const market = ctx.db.markets.insert({
     id: 0n,
-    event_id: DEMO_EVENT,
-    question: "Will the live demo work on the first try?",
+    event_id: eventId,
+    question,
     status: "open",
-    b: DEMO_LIQUIDITY,
+    b,
     created_at: ctx.timestamp,
   });
   ctx.db.outcomes.insert({ id: 0n, market_id: market.id, label: "YES", q: 0 });
@@ -163,6 +178,17 @@ function seedDemoIfEmpty(ctx: Ctx) {
       ts: ctx.timestamp,
     });
   }
+  return market;
+}
+
+function seedDemoIfEmpty(ctx: Ctx) {
+  if (ctx.db.markets.count() > 0n) return;
+  openBinaryMarket(
+    ctx,
+    DEMO_EVENT,
+    "Will the live demo work on the first try?",
+    DEMO_LIQUIDITY,
+  );
 }
 
 function scheduleTicksIfNeeded(ctx: Ctx) {
@@ -390,26 +416,51 @@ export const reseedDemo = spacetimedb.reducer((ctx) => {
     (m) => m.status === "open",
   );
   if (hasOpen) return;
-  const market = ctx.db.markets.insert({
-    id: 0n,
-    event_id: DEMO_EVENT,
-    question: "Will the next live demo work on the first try?",
-    status: "open",
-    b: DEMO_LIQUIDITY,
-    created_at: ctx.timestamp,
-  });
-  ctx.db.outcomes.insert({ id: 0n, market_id: market.id, label: "YES", q: 0 });
-  ctx.db.outcomes.insert({ id: 0n, market_id: market.id, label: "NO", q: 0 });
-  for (const o of ctx.db.outcomes.market_id.filter(market.id)) {
-    ctx.db.market_price_history.insert({
-      id: 0n,
-      market_id: market.id,
-      outcome_id: o.id,
-      prob: 0.5,
-      ts: ctx.timestamp,
-    });
-  }
+  openBinaryMarket(
+    ctx,
+    DEMO_EVENT,
+    "Will the next live demo work on the first try?",
+    DEMO_LIQUIDITY,
+  );
 });
+
+/** Self-serve: create a white-labeled event (tenant). Slug must be unique. */
+export const createEvent = spacetimedb.reducer(
+  {
+    slug: t.string(),
+    name: t.string(),
+    currencyName: t.string(),
+    accent: t.string(),
+  },
+  (ctx, { slug, name, currencyName, accent }) => {
+    if (!isValidSlug(slug)) {
+      throw new SenderError("invalid link (use lowercase letters, numbers, hyphens)");
+    }
+    if (ctx.db.events.slug.find(slug)) {
+      throw new SenderError("that event link is already taken");
+    }
+    if (name.trim().length === 0) throw new SenderError("event name is required");
+    ctx.db.events.insert({
+      id: 0n,
+      slug,
+      name: name.trim(),
+      currency_name: currencyName.trim() || "Sideline Bucks",
+      accent: accent || "#6366f1",
+      created_by: ctx.sender,
+      created_at: ctx.timestamp,
+    });
+  },
+);
+
+/** Create a binary market inside an event. */
+export const createMarket = spacetimedb.reducer(
+  { eventId: t.string(), question: t.string(), b: t.f64() },
+  (ctx, { eventId, question, b }) => {
+    if (question.trim().length === 0) throw new SenderError("question is required");
+    if (!(b > 0)) throw new SenderError("liquidity (b) must be positive");
+    openBinaryMarket(ctx, eventId, question.trim(), b);
+  },
+);
 
 /**
  * Housekeeping tick (scheduled, runs with NO client connected). Acts as a gentle

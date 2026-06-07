@@ -6,6 +6,8 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
+import CreateEventReducer from "../create_event_reducer";
+import CreateMarketReducer from "../create_market_reducer";
 import PlaceTradeReducer from "../place_trade_reducer";
 import PostAgentFeedReducer from "../post_agent_feed_reducer";
 import RegisterAgentReducer from "../register_agent_reducer";
@@ -14,6 +16,8 @@ import ResolveMarketReducer from "../resolve_market_reducer";
 import SeedDemoReducer from "../seed_demo_reducer";
 import StartTicksReducer from "../start_ticks_reducer";
 
+export type CreateEventParams = __Infer<typeof CreateEventReducer>;
+export type CreateMarketParams = __Infer<typeof CreateMarketReducer>;
 export type PlaceTradeParams = __Infer<typeof PlaceTradeReducer>;
 export type PostAgentFeedParams = __Infer<typeof PostAgentFeedReducer>;
 export type RegisterAgentParams = __Infer<typeof RegisterAgentReducer>;

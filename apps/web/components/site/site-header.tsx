@@ -33,7 +33,7 @@ export function SiteHeader() {
           >
             Try the demo
           </Link>
-          <Link href="#organizers" className={cn(buttonVariants({ size: "sm" }))}>
+          <Link href="/create" className={cn(buttonVariants({ size: "sm" }))}>
             Create your event
           </Link>
         </div>

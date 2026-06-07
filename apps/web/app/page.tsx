@@ -10,7 +10,7 @@ import {
 
 import { SiteHeader } from "@/components/site/site-header";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -84,7 +84,7 @@ export default function Home() {
             </p>
 
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-              <Link href="#organizers" className={cn(buttonVariants({ size: "lg" }))}>
+              <Link href="/create" className={cn(buttonVariants({ size: "lg" }))}>
                 Create your event
                 <ArrowRight />
               </Link>
@@ -171,16 +171,21 @@ export default function Home() {
                 to lean in, and your sponsors a brand-new stage.
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                <Button size="lg" variant="secondary">
-                  Create your event
-                </Button>
-                <Button
-                  size="lg"
-                  variant="ghost"
-                  className="text-background hover:bg-background/10 hover:text-background"
+                <Link
+                  href="/create"
+                  className={cn(buttonVariants({ size: "lg", variant: "secondary" }))}
                 >
-                  Book a demo
-                </Button>
+                  Create your event
+                </Link>
+                <Link
+                  href="/e/demo"
+                  className={cn(
+                    buttonVariants({ size: "lg", variant: "ghost" }),
+                    "text-background hover:bg-background/10 hover:text-background",
+                  )}
+                >
+                  See the live demo
+                </Link>
               </div>
             </div>
           </div>
