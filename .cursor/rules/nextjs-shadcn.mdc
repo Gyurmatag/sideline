@@ -1,0 +1,15 @@
+---
+description: Next.js 15 App Router + shadcn/ui + Tailwind v4 conventions for apps/web.
+globs: apps/web/**/*.tsx,apps/web/**/*.ts,apps/web/**/*.css
+alwaysApply: false
+---
+
+# Next.js 15 App Router + shadcn/ui + Tailwind v4
+
+- App Router under `apps/web/app`. Server Components by default; add `"use client"` only where you need state/effects/the STDB live connection.
+- Routes: `/` marketing, `/dashboard` (Clerk-protected organizer), `/e/[slug]` attendee app, `/e/[slug]/join`, `/e/[slug]/screen` (public spectator/projector).
+- The SpacetimeDB provider + all `useTable`/`useReducer` usage are in client components only.
+- Tailwind v4: CSS-first config via `@import "tailwindcss"` in `globals.css` + `@tailwindcss/postcss` in `postcss.config.mjs`. No `tailwind.config.js` unless a feature needs it.
+- shadcn/ui: add components with the CLI into `apps/web/components/ui`. Keep them composable; theme via CSS variables. Prefer accessible primitives (Radix under the hood).
+- Charts: lightweight-charts for live market price history; recharts for organizer analytics.
+- Accessibility: semantic roles, labels, keyboard nav, sufficient contrast (projector view especially).

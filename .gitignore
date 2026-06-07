@@ -1,0 +1,41 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next.js
+.next/
+out/
+next-env.d.ts
+
+# opennext / cloudflare
+.open-next/
+.wrangler/
+cloudflare-env.d.ts
+worker-configuration.d.ts
+
+# env / secrets (NEVER commit)
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+*.local
+
+# tests / coverage
+coverage/
+playwright-report/
+test-results/
+.playwright/
+
+# build artifacts
+dist/
+build/
+*.tsbuildinfo
+
+# misc
+.DS_Store
+*.pem
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.idea/

@@ -1,0 +1,19 @@
+---
+description: Next.js 15 on Cloudflare Workers via @opennextjs/cloudflare. Read when editing apps/web build/deploy config, next.config, wrangler.jsonc, or OpenNext setup.
+globs: apps/web/**
+alwaysApply: false
+---
+
+# Next.js 15 + OpenNext on Cloudflare Workers
+
+Pinned: `next@15.5.x`, `@opennextjs/cloudflare@1.19.x`, `wrangler@4.98+` (OpenNext peer-requires wrangler `>=4.86`).
+
+- Stay on Next.js **15** (avoid 16 Cache Components `use cache`, which currently 500s on Workers).
+- `wrangler.jsonc` MUST set `compatibility_flags: ["nodejs_compat"]` and a recent `compatibility_date` (>= 2024-09-23). `main: ".open-next/worker.js"`, assets binding `ASSETS` -> `.open-next/assets`.
+- No Edge runtime. Do NOT add `export const runtime = "edge"`. OpenNext runs Next on workerd with nodejs_compat (Node runtime semantics).
+- `next.config.ts` must call `initOpenNextCloudflareForDev()` so `next dev` can access Cloudflare bindings.
+- `open-next.config.ts` exports `defineCloudflareConfig({...})`. Wire incremental cache (R2/KV) here when needed.
+- Build/deploy: `opennextjs-cloudflare build` then `opennextjs-cloudflare deploy` (scripts: `cf:build`, `cf:deploy`, `cf:preview`).
+- Bindings/secrets: declare bindings in `wrangler.jsonc`, generate types with `wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts`. Access via `getCloudflareContext()` from `@opennextjs/cloudflare`. Secrets via `wrangler secret put` (prod) and `.dev.vars` (local, gitignored) — never commit.
+- The SpacetimeDB live connection is client-side only; never open it in SSR/Worker request scope.
+- `.open-next/`, `.wrangler/`, `cloudflare-env.d.ts` are generated and gitignored.

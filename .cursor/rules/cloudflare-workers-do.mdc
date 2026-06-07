@@ -1,0 +1,15 @@
+---
+description: Cloudflare Workers + Durable Objects + Wrangler conventions for the Sideline agents. Read when editing workers/agents or any Durable Object / Wrangler config.
+globs: workers/**
+alwaysApply: false
+---
+
+# Cloudflare Workers + Durable Objects (agents)
+
+- Agents hold a PERSISTENT SpacetimeDB connection + state, so they live in **Durable Objects**, not request-scoped Workers. One DO per agent + an orchestrator DO.
+- `wrangler.jsonc`: `compatibility_flags: ["nodejs_compat"]` + recent `compatibility_date`; declare DO bindings + `migrations` with `new_sqlite_classes`/`new_classes`.
+- All Claude calls and external fetches happen here (never in STDB reducers). Route Claude through Cloudflare AI Gateway (caching, rate-limit, analytics).
+- Secrets via `wrangler secret put` (prod) / `.dev.vars` (local, gitignored): STDB service token, Anthropic key, gateway config. Never commit secrets.
+- DO best practices: avoid floating promises; use `ctx.storage` for durable state + alarms for scheduling; reconnect with backoff if the STDB socket drops; idempotent handlers.
+- Connecting to STDB from a DO uses the same `spacetimedb/sdk` `DbConnection.builder()...build()` over WebSocket. This is the riskiest integration — validate with a standalone spike before building agent logic. Fallback: call reducers over the STDB HTTP API, or run the agent in a CF Container / external Node host.
+- Deploy with `wrangler deploy`. Tail logs with `wrangler tail`.

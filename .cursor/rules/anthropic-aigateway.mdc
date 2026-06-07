@@ -1,0 +1,14 @@
+---
+description: Claude via Cloudflare AI Gateway for Sideline agents — tiered models, caching, cost guardrails.
+globs: workers/**
+alwaysApply: false
+---
+
+# Claude via Cloudflare AI Gateway
+
+- All LLM calls go through Cloudflare AI Gateway (caching, rate-limiting, analytics, cost visibility), using `@anthropic-ai/sdk` with the gateway base URL.
+- Tiered models: cheap model (Claude Haiku) for routine ticks; frontier model (Claude Sonnet) only for material updates (large price move / near close) or high-stakes resolution. Gate frontier calls behind a "material change" check.
+- Cost guardrails: per-event budget, calls/min cap per agent, dedupe + cache identical prompts. Log token usage.
+- Determinism/safety: build prompts in pure, unit-tested functions; parse responses defensively (extract probability in [0,1] + reasoning) and reject malformed output rather than trading on garbage.
+- Secrets: Anthropic key + gateway id via wrangler secrets / `.dev.vars`. Never commit. LLM calls happen only in DOs/Workers, never in STDB reducers.
+- Forecaster agents must write transparent reasoning to `agent_feed` AND trade via `place_trade` — the reasoning feed is the AI showcase.

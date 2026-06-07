@@ -1,0 +1,14 @@
+---
+description: Testing + CI discipline for Sideline (Vitest unit/integration, Playwright E2E, green-main).
+globs: **/*.test.ts,**/*.spec.ts,**/vitest.config.ts,**/playwright.config.ts,.github/workflows/**
+alwaysApply: false
+---
+
+# Testing + CI discipline
+
+- Vitest for unit/integration: LMSR math correctness + numerical stability, reducer logic, payout + scoring, agent prompt builders + tier/cost gating, multi-tenant isolation. Pure functions (e.g. `lmsr.ts`) are imported and tested directly with no STDB runtime.
+- Playwright for E2E covering the full loop: organizer creates event + market -> attendee joins via link -> places a trade -> LMSR price moves live for a SECOND client -> market resolves -> play-money payout -> leaderboard updates. The two-client live price move is the canonical demo proof.
+- Every slice ends GREEN before commit: typecheck + lint + unit/integration + E2E. Keep `main` always green and always deployable.
+- Conventional Commits. Commit AND push after every green slice — small and frequent.
+- CI (GitHub Actions): typecheck + lint + test on every push; deploy on `main`. Regenerate STDB bindings on schema changes and verify they are current.
+- Never weaken/skip a test to go green. Fix the code. Flag anything touching real money/billing for explicit approval before building.

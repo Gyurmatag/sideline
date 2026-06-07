@@ -1,0 +1,21 @@
+{
+  "name": "sideline-monorepo",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@9.12.3",
+  "scripts": {
+    "dev": "pnpm --filter @sideline/web dev",
+    "build": "pnpm --filter @sideline/web build",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "test:e2e": "pnpm --filter @sideline/web test:e2e",
+    "cf:deploy": "pnpm --filter @sideline/web cf:deploy"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

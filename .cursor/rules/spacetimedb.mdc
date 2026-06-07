@@ -1,0 +1,45 @@
+---
+description: SpacetimeDB 2.4 TypeScript module + client rules. Read before writing ANY SpacetimeDB module, reducer, table, schedule, view, subscription, binding, or client connection code.
+globs: packages/module/**/*.ts,packages/bindings/**/*.ts,workers/agents/**/*.ts
+alwaysApply: false
+---
+
+# SpacetimeDB 2.4 (TypeScript) — house rules
+
+Pinned: CLI `spacetimedb 2.4.x`, npm `spacetimedb@2.4.x`. Module lib: `spacetimedb/server`. Client: `spacetimedb/sdk` + `spacetimedb/react`.
+
+## Modules, tables, reducers
+- A module is `src/index.ts` that builds a schema. If reducers live in other files, you MUST `import './that_file'` from `index.ts` or they are excluded from the bundle (Rolldown bundles `index.ts`).
+- Define tables with `table({ name, public }, { col: t.<type>()... })`, compose with `schema({...})`, declare reducers with `spacetimedb.reducer('name', { arg: t.x() }, (ctx, args) => {...})`.
+- Reducers return NOTHING. State changes propagate to clients only via table/view writes + subscriptions.
+- Reducers are atomic + deterministic: a throw rolls back the whole transaction. Throw `new SenderError('msg')` for user-facing errors; any other throw is a "programmer error"/panic (also rolls back).
+- HARD RULE: reducers run in sandboxed WASM with NO network and NO filesystem. NEVER `fetch`, call Claude, or read external data inside a reducer. All Claude/HTTP/external work happens in Durable Objects / Workers, never in the module.
+- Determinism: do not use `Math.random()` in reducers; use `ctx.rng`. Keep authoritative numeric state as integers where possible (e.g. LMSR share quantities as scaled ints) to protect commitlog replay.
+- `ctx`: `ctx.db` (tables/indexes), `ctx.sender` (caller Identity), `ctx.timestamp`, `ctx.connectionId`, `ctx.rng`.
+- Columns: `.primaryKey()`, `.unique()`, `.autoInc()` (insert 0 -> assigned), `.index('btree')`. Unique/PK generate `ctx.db.table.col.find/update/delete`. Insert a zero PK to auto-assign.
+- Types via `t`: ints map to `number` except 64/128/256-bit -> `bigint` (`t.u64()`/`t.i64()` are `bigint`). `t.string()`, `t.bool()`, `t.f64()`/`t.number()`, `t.identity()`, `t.timestamp()`, `t.option(x)`, `t.array(x)`, `t.object(name, {...})`, `t.enum(name, {...})`.
+
+## Access control / multi-tenant isolation
+- `public: true` tables are readable/subscribable by ANY connected client (filtered only by the client's own subscription query). Writes always go through reducers.
+- Private tables (default) are visible only to reducers + the module owner. Keep sensitive data (user balances, positions, org membership, audit) PRIVATE.
+- RLS is experimental and Rust/C#-only — do NOT rely on it in TS. Use **Views** for per-user reads: `spacetimedb.view({ name, public: true }, returnType, (ctx) => rows)` filtered by `ctx.sender`. Views are subscribable like tables.
+- Multi-tenant: every row carries `event_id`; clients subscribe scoped by `event_id`; per-user private data is exposed via Views keyed on `ctx.sender`.
+
+## Scheduled reducers (ticking with no client connected)
+- Make a table with `{ name, scheduled: 'reducer_name' }` containing `scheduled_id: t.u64().primaryKey().autoInc()` and `scheduled_at: t.scheduleAt()`.
+- Define `spacetimedb.reducer('reducer_name', { arg: TheTable.rowType }, (ctx, { arg }) => {...})`. Insert a row to schedule; delete to cancel. Guard against manual invocation by checking `ctx.sender` is the module identity where appropriate.
+
+## Client (browser/DO) + React
+- Generate bindings on every schema change: `spacetime generate --lang typescript --out-dir <dir>` -> `tables`, `reducers`, `DbConnection`. Commit generated bindings.
+- Connect: `DbConnection.builder().withUri(WS_URL).withDatabaseName(NAME).withToken(token?).onConnect(...).build()`.
+- React: wrap in `<SpacetimeDBProvider connectionBuilder={builder /* do NOT call .build() */}>`. Hooks: `useSpacetimeDB()` (identity/connection state), `useTable(tables.x.where(r => r.col.eq(v)))` -> reactive rows, `useReducer(reducers.fooBar)` -> callable. StrictMode-safe (single socket).
+- The browser holds the live connection: initialize CLIENT-SIDE ONLY (`"use client"`). NEVER open a connection during SSR/build or in a request-scoped Worker — it will fail. Agents connect from Durable Objects (persistent), not request Workers.
+- Use the query builder `.where(...)` for event-scoped subscriptions.
+
+## CLI (installed + logged in)
+- `spacetime publish <name>` (build + deploy; auto-migrates compatible schema changes). `--delete-data`/`-c` wipes data (destructive — ask first).
+- `spacetime generate`, `spacetime logs <name>`, `spacetime sql "<query>"`, `spacetime call <reducer> <args>`, `spacetime dev` (local: watch + regenerate + republish), `spacetime start` (local instance).
+- This project: dev DB `sideline_dev`, prod DB `sideline`. Regenerate bindings after every schema change and keep them committed/current (CI checks).
+
+## Migrations
+- Safe/auto: add tables/indexes, make private->public, toggle autoInc. Risky: add columns (need defaults), modify/remove reducers. Forbidden without manual migration: change column types/order, remove tables, alter scheduling. For breaking dev changes use `spacetime publish -c sideline_dev`.
