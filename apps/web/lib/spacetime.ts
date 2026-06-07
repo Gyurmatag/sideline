@@ -10,6 +10,11 @@ export const SPACETIME_DB =
 
 export const STDB_TOKEN_KEY = "sideline_stdb_token";
 
+/** Agents Worker (AI forecaster + resolver suggestions), called over HTTP. */
+export const AGENTS_URL =
+  process.env.NEXT_PUBLIC_AGENTS_URL ??
+  "https://sideline-agentb-agents.cfi-ops.workers.dev";
+
 /** Implied probabilities from an LMSR share vector (display-only mirror of the module). */
 export function pricesFromQ(qs: number[], b: number): number[] {
   if (qs.length === 0) return [];

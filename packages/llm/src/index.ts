@@ -3,3 +3,4 @@ export * from "./materiality";
 export * from "./cost";
 export * from "./providers";
 export * from "./forecast";
+export * from "./resolution";

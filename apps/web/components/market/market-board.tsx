@@ -2,12 +2,20 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, BarChart3, Loader2, Radio, Tv, Wallet } from "lucide-react";
+import {
+  ArrowLeft,
+  BarChart3,
+  Loader2,
+  Radio,
+  Sparkles,
+  Tv,
+  Wallet,
+} from "lucide-react";
 import { useReducer, useSpacetimeDB, useTable } from "spacetimedb/react";
 import type { UTCTimestamp } from "lightweight-charts";
 
 import { reducers, tables } from "@/src/module_bindings";
-import { pricesFromQ } from "@/lib/spacetime";
+import { AGENTS_URL, pricesFromQ } from "@/lib/spacetime";
 import { formatPercent1, formatPlayMoney, formatProbability } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,6 +47,12 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
   const [pending, setPending] = useState<bigint | null>(null);
   const [resolving, setResolving] = useState<bigint | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestion, setSuggestion] = useState<{
+    label: string;
+    confidence: number;
+    reasoning: string;
+  } | null>(null);
 
   // Prefer the most recent OPEN market so a resolved demo market doesn't stick.
   const market = useMemo(() => {
@@ -149,6 +163,31 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
     }
   }
 
+  async function handleSuggest() {
+    if (!market) return;
+    setSuggesting(true);
+    setError(null);
+    try {
+      const res = await fetch(`${AGENTS_URL}/resolve?market=${market.id}`);
+      const data = (await res.json()) as {
+        suggestedLabel?: string;
+        confidence?: number;
+        reasoning?: string;
+        error?: string;
+      };
+      if (data.error || !data.suggestedLabel) throw new Error(data.error ?? "No suggestion");
+      setSuggestion({
+        label: data.suggestedLabel,
+        confidence: data.confidence ?? 0,
+        reasoning: data.reasoning ?? "",
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "AI suggestion failed");
+    } finally {
+      setSuggesting(false);
+    }
+  }
+
   return (
     <div className="min-h-screen">
       <TopBar
@@ -230,16 +269,52 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
                         </div>
                       </div>
 
-                      <div className="mt-4 flex items-center justify-between gap-4 border-t border-border/60 pt-4">
-                        <span className="text-xs text-muted-foreground">
-                          Organizer · resolve outcome
-                        </span>
-                        <div className="flex items-center gap-1.5">
+                      <div className="mt-4 space-y-3 border-t border-border/60 pt-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="text-xs text-muted-foreground">
+                            Organizer · resolve outcome
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={suggesting}
+                            onClick={handleSuggest}
+                          >
+                            {suggesting ? (
+                              <Loader2 className="animate-spin" />
+                            ) : (
+                              <Sparkles className="size-3.5" />
+                            )}
+                            Suggest winner (AI)
+                          </Button>
+                        </div>
+
+                        {suggestion && (
+                          <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/5 px-3 py-2 text-sm">
+                            <span className="font-medium text-indigo-500">
+                              AI suggests {suggestion.label}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {" "}
+                              · {Math.round(suggestion.confidence * 100)}% confidence
+                            </span>
+                            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                              {suggestion.reasoning}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-end gap-1.5">
                           {marketOutcomes.map((o) => (
                             <Button
                               key={o.id.toString()}
                               size="sm"
-                              variant="outline"
+                              variant={
+                                suggestion?.label?.toUpperCase() ===
+                                o.label.toUpperCase()
+                                  ? "default"
+                                  : "outline"
+                              }
                               disabled={resolving !== null}
                               onClick={() => handleResolve(o.id)}
                               data-testid={`resolve-${o.label}`}
