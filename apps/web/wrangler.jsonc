@@ -10,5 +10,15 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+  "vars": {
+    "BETTER_AUTH_URL": "https://sideline-agentb-web.cfi-ops.workers.dev"
+  },
+  "d1_databases": [
+    {
+      "binding": "AUTH_DB",
+      "database_name": "sideline-auth",
+      "database_id": "dad252d9-7055-4853-856b-8a224fc580e6"
+    }
+  ]
 }

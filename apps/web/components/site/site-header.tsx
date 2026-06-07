@@ -48,10 +48,10 @@ export function SiteHeader() {
         {/* Right: actions (desktop) */}
         <div className="hidden items-center gap-2 md:flex">
           <Link
-            href="/e/demo"
+            href="/sign-in"
             className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
           >
-            Try the demo
+            Sign in
           </Link>
           <Link href="/create" className={cn(buttonVariants({ size: "sm" }))}>
             Create your event
@@ -86,11 +86,11 @@ export function SiteHeader() {
             ))}
             <div className="mt-2 flex flex-col gap-2">
               <Link
-                href="/e/demo"
+                href="/sign-in"
                 onClick={() => setOpen(false)}
                 className={cn(buttonVariants({ variant: "outline" }), "w-full")}
               >
-                Try the demo
+                Sign in
               </Link>
               <Link
                 href="/create"
