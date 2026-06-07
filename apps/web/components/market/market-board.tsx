@@ -30,6 +30,7 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
   const [trades] = useTable(tables.trades);
   const [users] = useTable(tables.users);
   const [resolutions] = useTable(tables.resolutions);
+  const [events] = useTable(tables.events.where((r) => r.slug.eq(eventSlug)));
   const placeTrade = useReducer(reducers.placeTrade);
   const resolveMarket = useReducer(reducers.resolveMarket);
 
@@ -45,6 +46,9 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
       .sort((a, b) => (a.id > b.id ? -1 : a.id < b.id ? 1 : 0));
     return sorted.find((m) => m.status === "open") ?? sorted[0];
   }, [markets]);
+
+  const event = events[0];
+  const currency = event?.currencyName ?? "Sideline Bucks";
 
   const marketOutcomes = useMemo(() => {
     if (!market) return [];
@@ -130,6 +134,8 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
     <div className="min-h-screen">
       <TopBar
         eventSlug={eventSlug}
+        eventName={event?.name}
+        currency={currency}
         isActive={isActive}
         balance={me?.balance}
       />
@@ -258,7 +264,11 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
                     <Wallet className="size-4" /> Your balance
                   </div>
                   <div className="mt-1 text-3xl font-semibold tabular-nums">
-                    {me ? formatPlayMoney(me.balance) : isActive ? "—" : "Connecting…"}
+                    {me
+                      ? formatPlayMoney(me.balance, currency)
+                      : isActive
+                        ? "—"
+                        : "Connecting…"}
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">
                     Play money only. No cash-out. Just for fun.
@@ -323,10 +333,14 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
 
 function TopBar({
   eventSlug,
+  eventName,
+  currency = "Sideline Bucks",
   isActive,
   balance,
 }: {
   eventSlug: string;
+  eventName?: string;
+  currency?: string;
   isActive: boolean;
   balance?: number;
 }) {
@@ -342,8 +356,8 @@ function TopBar({
             <ArrowLeft className="size-4" />
           </Link>
           <div>
-            <div className="text-sm font-semibold capitalize leading-tight">
-              {eventSlug} event
+            <div className="text-sm font-semibold leading-tight">
+              {eventName ?? `${eventSlug} event`}
             </div>
             <div className="text-xs text-muted-foreground">Sideline live market</div>
           </div>
@@ -367,7 +381,7 @@ function TopBar({
           </Badge>
           {balance !== undefined && (
             <span className="hidden text-sm font-medium tabular-nums sm:inline">
-              {formatPlayMoney(balance)}
+              {formatPlayMoney(balance, currency)}
             </span>
           )}
         </div>
