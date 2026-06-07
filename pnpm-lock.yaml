@@ -187,6 +187,9 @@ importers:
       vitest:
         specifier: 4.1.8
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@22.19.20)(vite@8.0.16(@types/node@22.19.20)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.16.9)(tsx@4.22.4)(yaml@2.9.0))
+      wrangler:
+        specifier: 4.98.0
+        version: 4.98.0(@cloudflare/workers-types@4.20260607.1)
 
 packages:
 
