@@ -6,7 +6,7 @@ export const SPACETIME_URI =
   process.env.NEXT_PUBLIC_SPACETIMEDB_URI ?? "wss://maincloud.spacetimedb.com";
 
 export const SPACETIME_DB =
-  process.env.NEXT_PUBLIC_SPACETIMEDB_DB ?? "sideline-dev";
+  process.env.NEXT_PUBLIC_SPACETIMEDB_DB ?? "sideline-agentb";
 
 export const STDB_TOKEN_KEY = "sideline_stdb_token";
 

@@ -32,6 +32,10 @@ dist/
 build/
 *.tsbuildinfo
 
+# agent identity tokens (local only)
+.agent-token
+*.agent-token
+
 # misc
 .DS_Store
 *.pem

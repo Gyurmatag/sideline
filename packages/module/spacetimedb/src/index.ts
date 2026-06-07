@@ -69,6 +69,36 @@ const spacetimedb = schema({
       ts: t.timestamp(),
     },
   ),
+  // AI agents (liquidity makers + transparent forecasters). An agent is a
+  // special user identified by its SpacetimeDB identity; it trades via
+  // place_trade like anyone else and narrates via agent_feed.
+  agents: table(
+    { public: true },
+    {
+      identity: t.identity().primaryKey(),
+      event_id: t.string().index("btree"),
+      name: t.string(),
+      persona: t.string(),
+      role: t.string(), // 'maker' | 'forecaster'
+      created_at: t.timestamp(),
+    },
+  ),
+  // The transparent reasoning feed — the AI showcase. Forecaster agents post a
+  // probability + reasoning here, then trade on it.
+  agent_feed: table(
+    { public: true },
+    {
+      id: t.u64().primaryKey().autoInc(),
+      event_id: t.string().index("btree"),
+      market_id: t.u64().index("btree"),
+      agent_identity: t.identity(),
+      agent_name: t.string(),
+      kind: t.string(), // 'forecast' | 'trade' | 'note'
+      reasoning: t.string(),
+      probability: t.f64(),
+      ts: t.timestamp(),
+    },
+  ),
 });
 
 export default spacetimedb;
@@ -199,6 +229,63 @@ export const placeTrade = spacetimedb.reducer(
       shares,
       cost,
       prob_after: prices[idx],
+      ts: ctx.timestamp,
+    });
+  },
+);
+
+/** Register (or update) the calling identity as an AI agent for an event. */
+export const registerAgent = spacetimedb.reducer(
+  {
+    eventId: t.string(),
+    name: t.string(),
+    persona: t.string(),
+    role: t.string(),
+  },
+  (ctx, { eventId, name, persona, role }) => {
+    ensureUser(ctx); // agents trade like users, so they need a play balance
+    const existing = ctx.db.agents.identity.find(ctx.sender);
+    if (existing) {
+      ctx.db.agents.identity.update({
+        ...existing,
+        event_id: eventId,
+        name,
+        persona,
+        role,
+      });
+    } else {
+      ctx.db.agents.insert({
+        identity: ctx.sender,
+        event_id: eventId,
+        name,
+        persona,
+        role,
+        created_at: ctx.timestamp,
+      });
+    }
+  },
+);
+
+/** Post a transparent reasoning entry (forecast/trade/note) to the live feed. */
+export const postAgentFeed = spacetimedb.reducer(
+  {
+    eventId: t.string(),
+    marketId: t.u64(),
+    kind: t.string(),
+    reasoning: t.string(),
+    probability: t.f64(),
+  },
+  (ctx, { eventId, marketId, kind, reasoning, probability }) => {
+    const agent = ctx.db.agents.identity.find(ctx.sender);
+    ctx.db.agent_feed.insert({
+      id: 0n,
+      event_id: eventId,
+      market_id: marketId,
+      agent_identity: ctx.sender,
+      agent_name: agent ? agent.name : "agent",
+      kind,
+      reasoning,
+      probability,
       ts: ctx.timestamp,
     });
   },

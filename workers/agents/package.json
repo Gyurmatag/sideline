@@ -1,0 +1,22 @@
+{
+  "name": "@sideline/agents",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sideline AI agents (forecaster + liquidity) that connect to SpacetimeDB and trade play money.",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "forecaster": "tsx src/runner.ts"
+  },
+  "dependencies": {
+    "@sideline/llm": "workspace:*",
+    "spacetimedb": "2.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "tsx": "^4.20.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.8"
+  }
+}
