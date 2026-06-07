@@ -29,6 +29,7 @@
     "radix-ui": "^1.5.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",
+    "recharts": "3.8.1",
     "spacetimedb": "2.4.1",
     "tailwind-merge": "3.6.0",
     "use-stick-to-bottom": "^1.1.6"
