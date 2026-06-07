@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Radio, Wallet } from "lucide-react";
+import { ArrowLeft, Loader2, Radio, Tv, Wallet } from "lucide-react";
 import { useReducer, useSpacetimeDB, useTable } from "spacetimedb/react";
 import type { UTCTimestamp } from "lightweight-charts";
 
@@ -349,6 +349,13 @@ function TopBar({
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <Link
+            href={`/e/${eventSlug}/screen`}
+            target="_blank"
+            className="hidden items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:inline-flex"
+          >
+            <Tv className="size-3.5" /> Big screen
+          </Link>
           <Badge variant={isActive ? "success" : "muted"}>
             <span
               className={cn(

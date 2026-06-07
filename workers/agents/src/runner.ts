@@ -34,7 +34,11 @@ const EVENT = process.env.AGENT_EVENT ?? "demo";
 const PROVIDER = (process.env.AGENT_PROVIDER ?? "openai") as Provider;
 const AGENT_NAME = process.env.AGENT_NAME ?? "Oracle";
 const PERSONA = "a calm, calibrated quant who explains the base rate";
-const TOKEN_FILE = fileURLToPath(new URL("../.agent-token", import.meta.url));
+// Per-agent token file so distinct named agents keep distinct identities/balances.
+const tokenSlug = AGENT_NAME.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+const TOKEN_FILE = fileURLToPath(
+  new URL(`../.agent-token-${tokenSlug}`, import.meta.url),
+);
 
 const env: ProviderEnv = {
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
