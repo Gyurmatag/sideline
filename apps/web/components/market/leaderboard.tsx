@@ -6,6 +6,7 @@ import { useSpacetimeDB, useTable } from "spacetimedb/react";
 import { tables } from "@/src/module_bindings";
 import { pricesFromQ } from "@/lib/spacetime";
 import { formatPlayMoney, initials } from "@/lib/format";
+import { netWorths } from "@/lib/leaderboard";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -38,26 +39,25 @@ export function Leaderboard({ eventSlug }: { eventSlug: string }) {
   const agentName = new Map(agents.map((a) => [a.identity.toHexString(), a.name]));
 
   const myHex = identity?.toHexString();
-  const rows = users
-    .map((u) => {
+  const rows = netWorths(
+    users.map((u) => {
       const hex = u.identity.toHexString();
-      const posValue = positions
-        .filter((p) => p.owner.toHexString() === hex)
-        .reduce(
-          (sum, p) => sum + p.shares * (priceByOutcome.get(p.outcomeId.toString()) ?? 0),
-          0,
-        );
       const name = agentName.get(hex);
       return {
         hex,
-        net: u.balance + posValue,
-        isAgent: name !== undefined,
+        balance: u.balance,
         name: name ?? `Trader ${hex.slice(0, 4)}`,
+        isAgent: name !== undefined,
         isMe: hex === myHex,
       };
-    })
-    .sort((a, b) => b.net - a.net)
-    .slice(0, 8);
+    }),
+    positions.map((p) => ({
+      ownerHex: p.owner.toHexString(),
+      outcomeId: p.outcomeId.toString(),
+      shares: p.shares,
+    })),
+    priceByOutcome,
+  ).slice(0, 8);
 
   return (
     <Card>
