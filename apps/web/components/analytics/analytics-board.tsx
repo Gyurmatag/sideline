@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { ArrowLeft, BarChart3, Bot, Coins, Users } from "lucide-react";
+import { ArrowLeft, BarChart3, Bot, Coins, Target, Users } from "lucide-react";
 import { useTable } from "spacetimedb/react";
 import {
   Area,
@@ -25,6 +25,7 @@ import {
   tradesByOutcome,
   type AnalyticsTrade,
 } from "@/lib/analytics";
+import { agentCalibration } from "@/lib/calibration";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function AnalyticsBoard({ eventSlug }: { eventSlug: string }) {
@@ -33,8 +34,38 @@ export function AnalyticsBoard({ eventSlug }: { eventSlug: string }) {
   const [trades] = useTable(tables.trades);
   const [agents] = useTable(tables.agents.where((r) => r.eventId.eq(eventSlug)));
   const [events] = useTable(tables.events.where((r) => r.slug.eq(eventSlug)));
+  const [feed] = useTable(tables.agent_feed.where((r) => r.eventId.eq(eventSlug)));
+  const [resolutions] = useTable(tables.resolutions);
 
   const currency = events[0]?.currencyName ?? "Sideline Bucks";
+
+  const calibration = useMemo(() => {
+    const marketIds = new Set(markets.map((m) => m.id.toString()));
+    const yesOutcomeByMarket = new Map<string, string>();
+    for (const o of outcomes) {
+      if (o.label.toUpperCase() === "YES") {
+        yesOutcomeByMarket.set(o.marketId.toString(), o.id.toString());
+      }
+    }
+    const resolutionEntries = resolutions
+      .filter((r) => marketIds.has(r.marketId.toString()))
+      .map((r) => ({
+        marketId: r.marketId.toString(),
+        yesWon:
+          yesOutcomeByMarket.get(r.marketId.toString()) ===
+          r.winningOutcomeId.toString(),
+      }));
+    const forecastEntries = feed
+      .filter((f) => f.kind === "forecast")
+      .slice()
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+      .map((f) => ({
+        agentName: f.agentName,
+        marketId: f.marketId.toString(),
+        probabilityYes: f.probability,
+      }));
+    return agentCalibration(forecastEntries, resolutionEntries);
+  }, [markets, outcomes, feed, resolutions]);
 
   const { stats, cumulative, byOutcome } = useMemo(() => {
     const marketIds = new Set(markets.map((m) => m.id.toString()));
@@ -93,6 +124,44 @@ export function AnalyticsBoard({ eventSlug }: { eventSlug: string }) {
             value={`${stats.agentTrades} / ${stats.humanTrades}`}
           />
         </div>
+
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="mb-1 flex items-center gap-2 font-semibold">
+              <Target className="size-4 text-indigo-500" /> AI forecaster calibration
+            </h2>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Brier score over resolved markets (lower is better) — the multi-tier
+              eval system, surfaced live.
+            </p>
+            {calibration.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No resolved forecasts yet — scores appear once markets with AI
+                forecasts resolve.
+              </p>
+            ) : (
+              <ul className="space-y-2.5">
+                {calibration.map((a, i) => (
+                  <li key={a.name} className="flex items-center gap-3 text-sm">
+                    <span className="w-4 text-center text-xs font-semibold tabular-nums text-muted-foreground">
+                      {i + 1}
+                    </span>
+                    <span className="flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-[10px] font-semibold text-white">
+                      {a.name.slice(0, 2).toUpperCase()}
+                    </span>
+                    <span className="flex-1 font-medium">{a.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {a.n} market{a.n > 1 ? "s" : ""}
+                    </span>
+                    <span className="w-16 text-right font-semibold tabular-nums">
+                      {a.brier.toFixed(3)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardContent className="p-6">

@@ -35,6 +35,24 @@ Winning-criteria hypotheses (refine as real judging info surfaces):
 - `parked-001` · Charity cash-out path (regulated; converts play winnings to charity donations) · status:parked · decision: DO NOT BUILD without explicit sign-off
 - `parked-002` · Org billing / Stripe subscription tiers · status:parked · decision: DO NOT BUILD without explicit sign-off
 
+## Research pass — 2026-06-07 (Manifold/Polymarket engagement teardown)
+
+Evidence: Manifold's engagement is driven by (a) **comments/discussion** on each market ("information sharing", explains why probabilities move), (b) **achievements / streaks / leagues / badges**, (c) **calibration tracking** ("when you say 70%, does it happen 70%?"), and (d) **reputation/leaderboard status** as the core motivator (play-money, so accuracy > profit). Validated next ideas:
+
+- `idea-014` · 2026-06-07 · **AI calibration scoreboard** — surface our eval system (Brier/calibration) in-product for the AI forecasters (and humans) over resolved markets. Unique vs competitors (nobody shows *AI* calibration), leverages `packages/evals`, reinforces "transparent AI". · value:H effort:M · win-impact:tech-depth,wow,creativity · status:validated · decision:build-next
+- `idea-015` · 2026-06-07 · **Market comments / reactions** — social discussion layer (Manifold's top engagement driver); attendees + agents post takes. · value:H effort:M · win-impact:wow,business · status:validated · decision:backlog
+- `idea-016` · 2026-06-07 · **Achievements + streaks** (e.g. "called it" on a <10% market, daily streak) — gamified retention. · value:M effort:M · win-impact:wow · status:validated · decision:backlog
+- `idea-017` · 2026-06-07 · **QR-to-join** on the market + big-screen views — frictionless venue onboarding. · value:H effort:L · win-impact:demo,business · status:validated · decision:backlog
+
 ## Shipped
 
-- `slice-0` · 2026-06-06 · Monorepo + Next 15/OpenNext hello on Cloudflare + CI + green tests · status:shipped
+- `slice-0` · 2026-06-06 · Monorepo + Next 15/OpenNext on Cloudflare + CI + green tests
+- `slice-1` · 2026-06-06 · LMSR pricing engine (reducer) + live multiplayer trade UI
+- `llm+evals` · 2026-06-07 · Multi-provider LLM layer + multi-tier eval system (merged to main, PR #2)
+- `agents` · 2026-06-07 · Liquidity maker (scheduled reducer) + LLM forecaster (Node + **deployed cron Worker**, 24/7)
+- `lifecycle` · 2026-06-07 · resolve_market + play-money payout + resolved/winner UI
+- `always-live` · 2026-06-07 · scheduled tick keeps markets alive with no client connected
+- `ui` · 2026-06-07 · AI desk (Vercel AI Elements), live leaderboard, Your-positions, per-event branding
+- `spectator` · 2026-06-07 · big-screen projector view /e/[slug]/screen
+- `multi-tenant` · 2026-06-07 · self-serve /create (white-label event + market), join via link
+- `analytics` · 2026-06-07 · organizer dashboard /e/[slug]/analytics (KPIs + recharts)
