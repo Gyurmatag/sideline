@@ -10,7 +10,7 @@ test("landing page renders the Sideline hero and CTAs", async ({ page }) => {
       level: 1,
     }),
   ).toBeVisible();
-  await expect(page.getByText(/prediction market/i)).toBeVisible();
+  await expect(page.getByText(/white-label, real-time/i)).toBeVisible();
   await expect(
     page.getByRole("link", { name: /create your event/i }).first(),
   ).toBeVisible();

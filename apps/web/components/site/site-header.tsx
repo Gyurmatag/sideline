@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { LayoutDashboard, LogOut, Menu, X } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/button";
+import { authClient } from "@/lib/auth-client";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
@@ -14,7 +16,22 @@ const NAV_LINKS = [
 ];
 
 export function SiteHeader() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { data: session } = authClient.useSession();
+
+  // Render the signed-out state on the server / first paint, then reconcile on
+  // the client to avoid a hydration mismatch (the server can't know the session).
+  useEffect(() => setMounted(true), []);
+  const authed = mounted && !!session;
+
+  async function signOut() {
+    await authClient.signOut();
+    setOpen(false);
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/70 backdrop-blur-xl">
@@ -47,12 +64,26 @@ export function SiteHeader() {
 
         {/* Right: actions (desktop) */}
         <div className="hidden items-center gap-2 md:flex">
-          <Link
-            href="/sign-in"
-            className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-          >
-            Sign in
-          </Link>
+          {authed ? (
+            <>
+              <Link
+                href="/dashboard"
+                className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+              >
+                <LayoutDashboard className="size-4" /> Dashboard
+              </Link>
+              <Button variant="ghost" size="sm" onClick={signOut}>
+                <LogOut className="size-4" /> Sign out
+              </Button>
+            </>
+          ) : (
+            <Link
+              href="/sign-in"
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+            >
+              Sign in
+            </Link>
+          )}
           <Link href="/create" className={cn(buttonVariants({ size: "sm" }))}>
             Create your event
           </Link>
@@ -85,13 +116,28 @@ export function SiteHeader() {
               </Link>
             ))}
             <div className="mt-2 flex flex-col gap-2">
-              <Link
-                href="/sign-in"
-                onClick={() => setOpen(false)}
-                className={cn(buttonVariants({ variant: "outline" }), "w-full")}
-              >
-                Sign in
-              </Link>
+              {authed ? (
+                <>
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setOpen(false)}
+                    className={cn(buttonVariants({ variant: "outline" }), "w-full")}
+                  >
+                    <LayoutDashboard className="size-4" /> Dashboard
+                  </Link>
+                  <Button variant="outline" className="w-full" onClick={signOut}>
+                    <LogOut className="size-4" /> Sign out
+                  </Button>
+                </>
+              ) : (
+                <Link
+                  href="/sign-in"
+                  onClick={() => setOpen(false)}
+                  className={cn(buttonVariants({ variant: "outline" }), "w-full")}
+                >
+                  Sign in
+                </Link>
+              )}
               <Link
                 href="/create"
                 onClick={() => setOpen(false)}

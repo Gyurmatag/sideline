@@ -28,6 +28,18 @@ export function createAuth(env: AuthEnv) {
       requireEmailVerification: false,
       minPasswordLength: 8,
     },
+    session: {
+      expiresIn: 60 * 60 * 24 * 7, // 7 days
+      updateAge: 60 * 60 * 24, // refresh the cookie at most once a day
+      cookieCache: { enabled: true, maxAge: 5 * 60 },
+    },
+    // Persist rate-limit counters in D1 so they hold across Worker isolates.
+    rateLimit: {
+      enabled: true,
+      storage: "database",
+      window: 60,
+      max: 60,
+    },
   });
 }
 
