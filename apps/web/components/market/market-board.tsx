@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { PriceChart, type PricePoint } from "./price-chart";
+import { AgentFeed } from "./agent-feed";
 
 const TRADE_SIZES = [10, 25, 50] as const;
 
@@ -177,6 +178,8 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
                   <PriceChart points={chartPoints} />
                 </CardContent>
               </Card>
+
+              <AgentFeed eventSlug={eventSlug} />
             </div>
 
             {/* Side panel */}

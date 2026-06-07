@@ -114,6 +114,15 @@ async function tick(conn: InstanceType<typeof DbConnection>): Promise<void> {
       outcomeId: outcome.id,
       shares: decision.shares,
     });
+    await conn.reducers.postAgentFeed({
+      eventId: EVENT,
+      marketId: market.id,
+      kind: "trade",
+      reasoning: `Bought ${decision.shares} ${decision.outcome} — my estimate (${Math.round(
+        forecastYes * 100,
+      )}%) diverged from the market (${Math.round(marketYes * 100)}%).`,
+      probability: forecastYes,
+    });
     console.log(`        traded ${decision.shares} ${decision.outcome}`);
   }
   console.log(`[agent] spend this run: $${budget.spent.toFixed(4)}`);
