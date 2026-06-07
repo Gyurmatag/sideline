@@ -191,6 +191,20 @@ function seedDemoIfEmpty(ctx: Ctx) {
   );
 }
 
+/** Keep the always-on demo event alive: if every demo market is resolved, open a fresh one. */
+function ensureDemoOpen(ctx: Ctx) {
+  const hasOpen = Array.from(ctx.db.markets.event_id.filter(DEMO_EVENT)).some(
+    (m) => m.status === "open",
+  );
+  if (hasOpen) return;
+  openBinaryMarket(
+    ctx,
+    DEMO_EVENT,
+    "Will the next live demo work on the first try?",
+    DEMO_LIQUIDITY,
+  );
+}
+
 function scheduleTicksIfNeeded(ctx: Ctx) {
   if (ctx.db.market_ticks.count() > 0n) return;
   ctx.db.market_ticks.insert({
@@ -412,16 +426,7 @@ export const resolveMarket = spacetimedb.reducer(
 
 /** Ensure the demo event always has an open market (handy after resolution). */
 export const reseedDemo = spacetimedb.reducer((ctx) => {
-  const hasOpen = Array.from(ctx.db.markets.event_id.filter(DEMO_EVENT)).some(
-    (m) => m.status === "open",
-  );
-  if (hasOpen) return;
-  openBinaryMarket(
-    ctx,
-    DEMO_EVENT,
-    "Will the next live demo work on the first try?",
-    DEMO_LIQUIDITY,
-  );
+  ensureDemoOpen(ctx);
 });
 
 /** Self-serve: create a white-labeled event (tenant). Slug must be unique. */
@@ -471,6 +476,9 @@ export const createMarket = spacetimedb.reducer(
 export const tickMarkets = spacetimedb.reducer(
   { timer: marketTicks.rowType },
   (ctx) => {
+    // Self-heal: the public demo is always-on, so reopen it if it ever fully resolves.
+    ensureDemoOpen(ctx);
+
     for (const market of ctx.db.markets.iter()) {
       if (market.status !== "open") continue;
       const outs = [...ctx.db.outcomes.market_id.filter(market.id)].sort((a, b) =>
