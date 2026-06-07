@@ -193,11 +193,8 @@ export default function Home() {
       </main>
 
       <footer className="border-t border-border/60 px-6 py-10">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-sm text-muted-foreground sm:flex-row">
+        <div className="mx-auto flex max-w-6xl items-center justify-center text-sm text-muted-foreground">
           <p>© {new Date().getFullYear()} Sideline. Play money only — not gambling.</p>
-          <p className="text-xs uppercase tracking-[0.2em]">
-            SpacetimeDB · Cloudflare · Claude
-          </p>
         </div>
       </footer>
     </>
