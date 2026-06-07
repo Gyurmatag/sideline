@@ -42,6 +42,12 @@ export const MarketPriceHistory = __t.object("MarketPriceHistory", {
 });
 export type MarketPriceHistory = __Infer<typeof MarketPriceHistory>;
 
+export const MarketTicks = __t.object("MarketTicks", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+});
+export type MarketTicks = __Infer<typeof MarketTicks>;
+
 export const Markets = __t.object("Markets", {
   id: __t.u64(),
   eventId: __t.string(),

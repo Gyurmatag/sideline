@@ -40,6 +40,7 @@ import RegisterAgentReducer from "./register_agent_reducer";
 import ReseedDemoReducer from "./reseed_demo_reducer";
 import ResolveMarketReducer from "./resolve_market_reducer";
 import SeedDemoReducer from "./seed_demo_reducer";
+import StartTicksReducer from "./start_ticks_reducer";
 
 // Import all procedure arg schemas
 
@@ -199,6 +200,7 @@ const reducersSchema = __reducers(
   __reducerSchema("reseed_demo", ReseedDemoReducer),
   __reducerSchema("resolve_market", ResolveMarketReducer),
   __reducerSchema("seed_demo", SeedDemoReducer),
+  __reducerSchema("start_ticks", StartTicksReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */

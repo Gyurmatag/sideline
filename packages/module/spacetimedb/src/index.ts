@@ -1,12 +1,28 @@
 import { schema, table, t, SenderError } from "spacetimedb/server";
+import { ScheduleAt } from "spacetimedb";
 import { costToBuy, lmsrPrices } from "./lmsr";
 import { resolvedPrices } from "./settlement";
+
+// How often the housekeeping tick runs (keeps markets alive with no client).
+const TICK_INTERVAL_MICROS = 20_000_000n; // 20s
+
+// Scheduled table: each interval fires `tickMarkets`. Defined standalone so the
+// reducer can reference `marketTicks.rowType`.
+const marketTicks = table(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ref breaks the circular dep with the reducer
+  { name: "market_ticks", scheduled: (): any => tickMarkets },
+  {
+    scheduled_id: t.u64().primaryKey().autoInc(),
+    scheduled_at: t.scheduleAt(),
+  },
+);
 
 const STARTING_BALANCE = 1000;
 const DEMO_EVENT = "demo";
 const DEMO_LIQUIDITY = 50;
 
 const spacetimedb = schema({
+  market_ticks: marketTicks,
   users: table(
     { public: true },
     {
@@ -149,8 +165,22 @@ function seedDemoIfEmpty(ctx: Ctx) {
   }
 }
 
+function scheduleTicksIfNeeded(ctx: Ctx) {
+  if (ctx.db.market_ticks.count() > 0n) return;
+  ctx.db.market_ticks.insert({
+    scheduled_id: 0n,
+    scheduled_at: ScheduleAt.interval(TICK_INTERVAL_MICROS),
+  });
+}
+
 export const init = spacetimedb.init((ctx) => {
   seedDemoIfEmpty(ctx);
+  scheduleTicksIfNeeded(ctx);
+});
+
+/** Idempotently start the housekeeping tick (for DBs created before it existed). */
+export const startTicks = spacetimedb.reducer((ctx) => {
+  scheduleTicksIfNeeded(ctx);
 });
 
 export const onConnect = spacetimedb.clientConnected((ctx) => {
@@ -380,3 +410,49 @@ export const reseedDemo = spacetimedb.reducer((ctx) => {
     });
   }
 });
+
+/**
+ * Housekeeping tick (scheduled, runs with NO client connected). Acts as a gentle
+ * liquidity maker: for each open market it applies a small bounded nudge (kept
+ * within [5%, 95%]) and snapshots prices, so the chart always has a live heartbeat
+ * and no market ever looks dead. Deterministic via ctx.random.
+ */
+export const tickMarkets = spacetimedb.reducer(
+  { timer: marketTicks.rowType },
+  (ctx) => {
+    for (const market of ctx.db.markets.iter()) {
+      if (market.status !== "open") continue;
+      const outs = [...ctx.db.outcomes.market_id.filter(market.id)].sort((a, b) =>
+        a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
+      );
+      if (outs.length < 2) continue;
+
+      const idx = ctx.random.integerInRange(0, outs.length - 1);
+      const dir = ctx.random() < 0.5 ? -1 : 1;
+      const nudge = dir * ctx.random.integerInRange(1, 3);
+      const candidate = outs.map((o, i) => (i === idx ? o.q + nudge : o.q));
+      const candidatePrices = lmsrPrices(candidate, market.b);
+
+      // Only apply the nudge if it keeps the traded outcome within sane bounds.
+      const apply = candidatePrices[idx] >= 0.05 && candidatePrices[idx] <= 0.95;
+      if (apply) {
+        ctx.db.outcomes.id.update({ ...outs[idx], q: outs[idx].q + nudge });
+      }
+      const prices = apply
+        ? candidatePrices
+        : lmsrPrices(
+            outs.map((o) => o.q),
+            market.b,
+          );
+      for (let i = 0; i < outs.length; i++) {
+        ctx.db.market_price_history.insert({
+          id: 0n,
+          market_id: market.id,
+          outcome_id: outs[i].id,
+          prob: prices[i],
+          ts: ctx.timestamp,
+        });
+      }
+    }
+  },
+);

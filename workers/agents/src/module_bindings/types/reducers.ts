@@ -12,6 +12,7 @@ import RegisterAgentReducer from "../register_agent_reducer";
 import ReseedDemoReducer from "../reseed_demo_reducer";
 import ResolveMarketReducer from "../resolve_market_reducer";
 import SeedDemoReducer from "../seed_demo_reducer";
+import StartTicksReducer from "../start_ticks_reducer";
 
 export type PlaceTradeParams = __Infer<typeof PlaceTradeReducer>;
 export type PostAgentFeedParams = __Infer<typeof PostAgentFeedReducer>;
@@ -19,4 +20,5 @@ export type RegisterAgentParams = __Infer<typeof RegisterAgentReducer>;
 export type ReseedDemoParams = __Infer<typeof ReseedDemoReducer>;
 export type ResolveMarketParams = __Infer<typeof ResolveMarketReducer>;
 export type SeedDemoParams = __Infer<typeof SeedDemoReducer>;
+export type StartTicksParams = __Infer<typeof StartTicksReducer>;
 
