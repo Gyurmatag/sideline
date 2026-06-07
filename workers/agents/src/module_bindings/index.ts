@@ -37,6 +37,8 @@ import {
 import PlaceTradeReducer from "./place_trade_reducer";
 import PostAgentFeedReducer from "./post_agent_feed_reducer";
 import RegisterAgentReducer from "./register_agent_reducer";
+import ReseedDemoReducer from "./reseed_demo_reducer";
+import ResolveMarketReducer from "./resolve_market_reducer";
 import SeedDemoReducer from "./seed_demo_reducer";
 
 // Import all procedure arg schemas
@@ -48,6 +50,7 @@ import MarketPriceHistoryRow from "./market_price_history_table";
 import MarketsRow from "./markets_table";
 import OutcomesRow from "./outcomes_table";
 import PositionsRow from "./positions_table";
+import ResolutionsRow from "./resolutions_table";
 import TradesRow from "./trades_table";
 import UsersRow from "./users_table";
 
@@ -146,6 +149,21 @@ const tablesSchema = __schema({
       { name: 'positions_key_key', constraint: 'unique', columns: ['key'] },
     ],
   }, PositionsRow),
+  resolutions: __table({
+    name: 'resolutions',
+    indexes: [
+      { accessor: 'id', name: 'resolutions_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'market_id', name: 'resolutions_market_id_idx_btree', algorithm: 'btree', columns: [
+        'marketId',
+      ] },
+    ],
+    constraints: [
+      { name: 'resolutions_id_key', constraint: 'unique', columns: ['id'] },
+      { name: 'resolutions_market_id_key', constraint: 'unique', columns: ['marketId'] },
+    ],
+  }, ResolutionsRow),
   trades: __table({
     name: 'trades',
     indexes: [
@@ -178,6 +196,8 @@ const reducersSchema = __reducers(
   __reducerSchema("place_trade", PlaceTradeReducer),
   __reducerSchema("post_agent_feed", PostAgentFeedReducer),
   __reducerSchema("register_agent", RegisterAgentReducer),
+  __reducerSchema("reseed_demo", ReseedDemoReducer),
+  __reducerSchema("resolve_market", ResolveMarketReducer),
   __reducerSchema("seed_demo", SeedDemoReducer),
 );
 

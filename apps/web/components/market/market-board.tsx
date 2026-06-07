@@ -29,13 +29,22 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
   const [history] = useTable(tables.market_price_history);
   const [trades] = useTable(tables.trades);
   const [users] = useTable(tables.users);
+  const [resolutions] = useTable(tables.resolutions);
   const placeTrade = useReducer(reducers.placeTrade);
+  const resolveMarket = useReducer(reducers.resolveMarket);
 
   const [shares, setShares] = useState<number>(10);
   const [pending, setPending] = useState<bigint | null>(null);
+  const [resolving, setResolving] = useState<bigint | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const market = markets[0];
+  // Prefer the most recent OPEN market so a resolved demo market doesn't stick.
+  const market = useMemo(() => {
+    const sorted = markets
+      .slice()
+      .sort((a, b) => (a.id > b.id ? -1 : a.id < b.id ? 1 : 0));
+    return sorted.find((m) => m.status === "open") ?? sorted[0];
+  }, [markets]);
 
   const marketOutcomes = useMemo(() => {
     if (!market) return [];
@@ -83,6 +92,14 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
       .slice(0, 8);
   }, [trades, market]);
 
+  const winningOutcomeId = useMemo(
+    () =>
+      market
+        ? resolutions.find((r) => r.marketId === market.id)?.winningOutcomeId
+        : undefined,
+    [resolutions, market],
+  );
+
   async function handleBuy(outcomeId: bigint) {
     if (!market) return;
     setError(null);
@@ -93,6 +110,19 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
       setError(e instanceof Error ? e.message : "Trade failed");
     } finally {
       setPending(null);
+    }
+  }
+
+  async function handleResolve(outcomeId: bigint) {
+    if (!market) return;
+    setError(null);
+    setResolving(outcomeId);
+    try {
+      await resolveMarket({ marketId: market.id, winningOutcomeId: outcomeId });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Resolve failed");
+    } finally {
+      setResolving(null);
     }
   }
 
@@ -137,6 +167,8 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
                         tone={i === 0 ? "yes" : "no"}
                         disabled={market.status !== "open" || pending !== null}
                         loading={pending === o.id}
+                        resolved={market.status === "resolved"}
+                        won={o.id === winningOutcomeId}
                         onBuy={() => handleBuy(o.id)}
                       />
                     ))}
@@ -148,21 +180,56 @@ export function MarketBoard({ eventSlug }: { eventSlug: string }) {
                     </p>
                   )}
 
-                  <div className="mt-6 flex items-center justify-between gap-4">
-                    <span className="text-sm text-muted-foreground">Trade size</span>
-                    <div className="flex items-center gap-1.5">
-                      {TRADE_SIZES.map((s) => (
-                        <Button
-                          key={s}
-                          size="sm"
-                          variant={shares === s ? "default" : "outline"}
-                          onClick={() => setShares(s)}
-                        >
-                          {s}
-                        </Button>
-                      ))}
+                  {market.status === "resolved" ? (
+                    <div className="mt-6 rounded-lg border border-success/30 bg-success/5 px-4 py-3 text-sm">
+                      <span className="font-semibold text-success">Resolved</span> —{" "}
+                      {marketOutcomes.find((o) => o.id === winningOutcomeId)?.label ??
+                        "?"}{" "}
+                      won. Winners were paid 1 per share in play money.
                     </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="mt-6 flex items-center justify-between gap-4">
+                        <span className="text-sm text-muted-foreground">Trade size</span>
+                        <div className="flex items-center gap-1.5">
+                          {TRADE_SIZES.map((s) => (
+                            <Button
+                              key={s}
+                              size="sm"
+                              variant={shares === s ? "default" : "outline"}
+                              onClick={() => setShares(s)}
+                            >
+                              {s}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-between gap-4 border-t border-border/60 pt-4">
+                        <span className="text-xs text-muted-foreground">
+                          Organizer · resolve outcome
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {marketOutcomes.map((o) => (
+                            <Button
+                              key={o.id.toString()}
+                              size="sm"
+                              variant="outline"
+                              disabled={resolving !== null}
+                              onClick={() => handleResolve(o.id)}
+                              data-testid={`resolve-${o.label}`}
+                            >
+                              {resolving === o.id ? (
+                                <Loader2 className="animate-spin" />
+                              ) : (
+                                `Resolve ${o.label}`
+                              )}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
@@ -308,6 +375,8 @@ function OutcomeTile({
   tone,
   disabled,
   loading,
+  resolved,
+  won,
   onBuy,
 }: {
   label: string;
@@ -315,13 +384,17 @@ function OutcomeTile({
   tone: "yes" | "no";
   disabled: boolean;
   loading: boolean;
+  resolved: boolean;
+  won: boolean;
   onBuy: () => void;
 }) {
   return (
     <div
       data-testid={`outcome-${label}`}
       className={cn(
-        "rounded-xl border p-4",
+        "rounded-xl border p-4 transition-opacity",
+        won && "ring-2 ring-success",
+        resolved && !won && "opacity-50",
         tone === "yes"
           ? "border-success/30 bg-success/5"
           : "border-destructive/25 bg-destructive/5",
@@ -339,15 +412,25 @@ function OutcomeTile({
           {formatProbability(prob)}
         </span>
       </div>
-      <Button
-        className="mt-4 w-full"
-        data-testid={`buy-${label}`}
-        variant={tone === "yes" ? "success" : "destructive"}
-        disabled={disabled}
-        onClick={onBuy}
-      >
-        {loading ? <Loader2 className="animate-spin" /> : `Buy ${label}`}
-      </Button>
+      {resolved ? (
+        <div className="mt-4 flex h-10 items-center justify-center rounded-full bg-muted text-sm font-medium">
+          {won ? (
+            <span className="text-success">Winner ✓</span>
+          ) : (
+            <span className="text-muted-foreground">Did not resolve</span>
+          )}
+        </div>
+      ) : (
+        <Button
+          className="mt-4 w-full"
+          data-testid={`buy-${label}`}
+          variant={tone === "yes" ? "success" : "destructive"}
+          disabled={disabled}
+          onClick={onBuy}
+        >
+          {loading ? <Loader2 className="animate-spin" /> : `Buy ${label}`}
+        </Button>
+      )}
     </div>
   );
 }

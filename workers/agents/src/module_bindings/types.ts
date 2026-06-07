@@ -70,6 +70,14 @@ export const Positions = __t.object("Positions", {
 });
 export type Positions = __Infer<typeof Positions>;
 
+export const Resolutions = __t.object("Resolutions", {
+  id: __t.u64(),
+  marketId: __t.u64(),
+  winningOutcomeId: __t.u64(),
+  resolvedAt: __t.timestamp(),
+});
+export type Resolutions = __Infer<typeof Resolutions>;
+
 export const Trades = __t.object("Trades", {
   id: __t.u64(),
   marketId: __t.u64(),

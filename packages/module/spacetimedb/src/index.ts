@@ -1,5 +1,6 @@
 import { schema, table, t, SenderError } from "spacetimedb/server";
 import { costToBuy, lmsrPrices } from "./lmsr";
+import { resolvedPrices } from "./settlement";
 
 const STARTING_BALANCE = 1000;
 const DEMO_EVENT = "demo";
@@ -97,6 +98,16 @@ const spacetimedb = schema({
       reasoning: t.string(),
       probability: t.f64(),
       ts: t.timestamp(),
+    },
+  ),
+  // One row per resolved market (manual organizer result = source of truth).
+  resolutions: table(
+    { public: true },
+    {
+      id: t.u64().primaryKey().autoInc(),
+      market_id: t.u64().unique(),
+      winning_outcome_id: t.u64(),
+      resolved_at: t.timestamp(),
     },
   ),
 });
@@ -290,3 +301,82 @@ export const postAgentFeed = spacetimedb.reducer(
     });
   },
 );
+
+/**
+ * Resolve a market to a winning outcome (organizer-entered result = source of
+ * truth). Pays 1 play-money unit per winning share, settles all positions to
+ * zero, marks the market resolved, and snapshots final prices. Idempotent: a
+ * resolved market cannot be resolved again.
+ *
+ * NOTE: open to any caller for the demo. Production gates this to org admins.
+ */
+export const resolveMarket = spacetimedb.reducer(
+  { marketId: t.u64(), winningOutcomeId: t.u64() },
+  (ctx, { marketId, winningOutcomeId }) => {
+    const market = ctx.db.markets.id.find(marketId);
+    if (!market) throw new SenderError("market not found");
+    if (market.status === "resolved") throw new SenderError("market already resolved");
+
+    const outs = Array.from(ctx.db.outcomes.market_id.filter(marketId));
+    if (!outs.some((o) => o.id === winningOutcomeId)) {
+      throw new SenderError("winning outcome does not belong to this market");
+    }
+
+    for (const pos of ctx.db.positions.market_id.filter(marketId)) {
+      if (pos.shares > 0 && pos.outcome_id === winningOutcomeId) {
+        const u = ctx.db.users.identity.find(pos.owner);
+        if (u) ctx.db.users.identity.update({ ...u, balance: u.balance + pos.shares });
+      }
+      if (pos.shares !== 0) ctx.db.positions.id.update({ ...pos, shares: 0 });
+    }
+
+    ctx.db.markets.id.update({ ...market, status: "resolved" });
+
+    for (const { outcomeId, prob } of resolvedPrices(
+      outs.map((o) => o.id),
+      winningOutcomeId,
+    )) {
+      ctx.db.market_price_history.insert({
+        id: 0n,
+        market_id: marketId,
+        outcome_id: outcomeId,
+        prob,
+        ts: ctx.timestamp,
+      });
+    }
+
+    ctx.db.resolutions.insert({
+      id: 0n,
+      market_id: marketId,
+      winning_outcome_id: winningOutcomeId,
+      resolved_at: ctx.timestamp,
+    });
+  },
+);
+
+/** Ensure the demo event always has an open market (handy after resolution). */
+export const reseedDemo = spacetimedb.reducer((ctx) => {
+  const hasOpen = Array.from(ctx.db.markets.event_id.filter(DEMO_EVENT)).some(
+    (m) => m.status === "open",
+  );
+  if (hasOpen) return;
+  const market = ctx.db.markets.insert({
+    id: 0n,
+    event_id: DEMO_EVENT,
+    question: "Will the next live demo work on the first try?",
+    status: "open",
+    b: DEMO_LIQUIDITY,
+    created_at: ctx.timestamp,
+  });
+  ctx.db.outcomes.insert({ id: 0n, market_id: market.id, label: "YES", q: 0 });
+  ctx.db.outcomes.insert({ id: 0n, market_id: market.id, label: "NO", q: 0 });
+  for (const o of ctx.db.outcomes.market_id.filter(market.id)) {
+    ctx.db.market_price_history.insert({
+      id: 0n,
+      market_id: market.id,
+      outcome_id: o.id,
+      prob: 0.5,
+      ts: ctx.timestamp,
+    });
+  }
+});
